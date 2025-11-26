@@ -90,6 +90,10 @@ def list_proposals():
     proposals = TripProposal.query.filter(
         TripProposal.status == ProposalStatus.open
     ).all()
+
+    # Call get_participation for each proposal
+    for p in proposals:
+        p.participation = get_participation(p)
     return render_template("proposals_list.html", proposals=proposals)
 
 
@@ -125,6 +129,36 @@ def proposal_detail(proposal_id: int):
         meetups=meetups,
         participation=participation,   # VIKTIG: brukes i templaten for å vise delete-knappen
     )
+
+@proposals_bp.route("/proposal/<int:proposal_id>/join")
+@login_required
+def proposal_join(proposal_id: int):
+    proposal = TripProposal.query.get_or_404(proposal_id)
+   #already participating 
+    if get_participation(proposal):
+       return
+    
+   #check if trip is full 
+    if proposal.max_participants and len(proposal.participations) >= proposal.max_participants:
+        flash("This trip is full.", "warning")
+        # auto-close proposal
+        proposal.status = ProposalStatus.closed_to_new_participants
+        db.session.commit()
+        return redirect(url_for("proposals.list_proposals"))
+    
+    # Add participation
+    participation = Participation(user_id=current_user.id, proposal_id=proposal_id)
+    db.session.add(participation)
+
+    # close if full after joining
+    if proposal.max_participants and len(proposal.participations) + 1 >= proposal.max_participants:
+        proposal.status = ProposalStatus.closed_to_new_participants
+
+    db.session.commit()
+     
+    return render_template(
+        "proposal_detail.html",
+        proposal=proposal)
 
 
 @proposals_bp.route("/proposal/new", methods=["GET", "POST"])

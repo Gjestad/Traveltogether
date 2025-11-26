@@ -32,6 +32,13 @@ class TripProposal(db.Model):
 
     creator_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
+    participations = db.relationship(
+        "Participation",
+        backref="proposal_parent",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
+
     # Relasjoner
     messages = db.relationship("Message", backref="proposal", lazy=True, cascade="all, delete-orphan")
     meetups = db.relationship("Meetup", backref="proposal", lazy=True, cascade="all, delete-orphan")

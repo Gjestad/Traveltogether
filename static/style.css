@@ -20,6 +20,44 @@ body{
   font:16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
 }
 
+/* Background video styling */
+.bg-video-wrapper{
+  position:fixed;
+  inset:0; /* top:0; right:0; bottom:0; left:0 */
+  overflow:hidden;
+  z-index:0; /* behind content but above page background */
+  pointer-events:none;
+}
+.bg-video{
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  min-width:100%;
+  min-height:100%;
+  width:auto;
+  height:auto;
+  object-fit:cover;
+  filter:saturate(0.95) contrast(0.95);
+  z-index:-1; /* keep video below fade and content inside wrapper */
+}
+.bg-video-fade{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  height:28vh; /* height of fade area */
+  background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, var(--bg) 100%);
+  z-index:0;
+  pointer-events:none;
+}
+
+/* Slight dark overlay to improve text contrast over video */
+.bg-video-overlay{
+  position:fixed; inset:0; z-index:0; background:rgba(3,6,12,0.12); pointer-events:none;
+}
+
+/* Ensure main content sits above the background video */
+.container{ position:relative; z-index:1 }
+
 a{color:#a3e635; text-decoration:none}
 a:hover{opacity:.9}
 
@@ -35,8 +73,81 @@ a:hover{opacity:.9}
   font-weight:800; letter-spacing:.3px; margin-right:auto;
   color:#e2e8f0;
 }
-.nav a{padding:8px 10px; border-radius:10px}
-.nav a.active, .nav a:hover{background:rgba(255,255,255,.06)}
+.nav a{
+  padding:8px 10px; border-radius:10px;
+  display:inline-block;
+  border:1px solid rgba(255,255,255,0.04);
+  background:transparent;
+  transition: box-shadow 160ms ease, transform 120ms ease, background-color 120ms ease;
+}
+
+/* Hover/focus for all nav links (subtle glow). Secondary links have their own stronger hover rules. */
+.nav a:hover,
+.nav a:focus{
+  background:rgba(255,255,255,.04);
+  box-shadow:0 8px 20px rgba(0,0,0,0.35), 0 6px 18px rgba(34,197,94,0.06);
+  transform:translateY(-1px);
+  outline:none;
+}
+
+/* Style for nav secondary links (Login / Register) as outlined boxes with hover glow */
+.nav > a.secondary{
+  display:inline-block;
+  padding:8px 12px;
+  border-radius:10px;
+  border:1px solid rgba(255,255,255,0.10);
+  background:transparent;
+  color:var(--text);
+  transition: box-shadow 160ms ease, transform 120ms ease, background-color 120ms ease;
+}
+.nav > a.secondary:hover,
+.nav > a.secondary:focus{
+  background:rgba(34,197,94,0.06);
+  box-shadow:0 8px 24px rgba(34,197,94,0.14);
+  transform:translateY(-1px);
+  outline:none;
+}
+
+/* Logout should glow red on hover instead of green */
+.nav a.logout:hover,
+.nav a.logout:focus{
+  background:rgba(239,68,68,0.08);
+  box-shadow:0 8px 24px rgba(239,68,68,0.18);
+  transform:translateY(-1px);
+  color:white;
+  outline:none;
+}
+
+/* Strong green glow for login link */
+.nav a.login:hover,
+.nav a.login:focus{
+  background:rgba(34,197,94,0.08);
+  box-shadow:0 10px 30px rgba(34,197,94,0.18);
+  transform:translateY(-1px);
+  color:#052e16;
+}
+
+/* Homepage login CTA green glow (stronger) */
+.home-cta a.login:hover,
+.home-cta a.login:focus{
+  background:rgba(34,197,94,0.08);
+  box-shadow:0 10px 30px rgba(34,197,94,0.18);
+  transform:translateY(-1px);
+}
+
+/* Header Register should glow yellow like homepage register */
+.nav a.register:hover,
+.nav a.register:focus{
+  background:rgba(245,158,11,0.08);
+  box-shadow:0 8px 24px rgba(245,158,11,0.14);
+  transform:translateY(-1px);
+  color:#1f2937;
+  outline:none;
+}
+
+/* Make the spacing between the two secondary links double compared to nav gap */
+.nav > a.secondary + a.secondary {
+}
 
 .container{
   max-width:980px; margin:28px auto; padding:0 16px;
@@ -56,6 +167,42 @@ h1{font-size:26px} h2{font-size:22px} h3{font-size:20px; color:#cbd5e1}
 .grid{display:grid; gap:14px}
 .grid.cols-2{grid-template-columns:1fr 1fr}
 @media (max-width:800px){ .grid.cols-2{grid-template-columns:1fr} }
+
+/* Homepage CTA spacing: increase gap between Login / Register to ~double */
+.home-cta{ display:flex; gap:28px; align-items:center; margin: 18px 0; }
+.home-cta a{ text-decoration:none; color:var(--text); padding:8px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); }
+.home-cta a.secondary{ border-color: rgba(255,255,255,0.08); }
+
+/* Make homepage CTA links use the same hover/lift effect as nav links */
+.home-cta a:hover,
+.home-cta a:focus{
+  background:rgba(255,255,255,.04);
+  box-shadow:0 8px 20px rgba(0,0,0,0.35), 0 6px 18px rgba(34,197,94,0.06);
+  transform:translateY(-1px);
+  outline:none;
+}
+
+/* Register on homepage should glow yellow */
+.home-cta a.secondary:hover,
+.home-cta a.secondary:focus{
+  background:rgba(245,158,11,0.08);
+  box-shadow:0 8px 24px rgba(245,158,11,0.14);
+  transform:translateY(-1px);
+  outline:none;
+}
+
+/* Autocomplete dropdown */
+.autocomplete-list{
+  position:relative;
+  display:none;
+  background:linear-gradient(180deg,#071020 0,#081226 100%);
+  border:1px solid rgba(255,255,255,.06);
+  border-radius:8px;
+  margin-top:6px;
+  max-height:220px; overflow:auto; z-index:5; padding:6px;
+}
+.autocomplete-item{ padding:8px 10px; cursor:pointer; border-radius:6px; color:var(--text); }
+.autocomplete-item:hover{ background:rgba(255,255,255,.03); }
 
 table{
   width:100%; border-collapse:separate; border-spacing:0;

@@ -8,16 +8,24 @@
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
   </head>
   <body>
+    <!-- Background video (place a file at static/bg.mp4 or change src) -->
+    <div class="bg-video-wrapper" aria-hidden="true">
+      <video class="bg-video" autoplay muted loop playsinline preload="auto">
+        <source src="{{ url_for('static', filename='bg.mp4') }}" type="video/mp4">
+        <!-- Fallback: poster image if needed -->
+      </video>
+      <div class="bg-video-fade"></div>
+    </div>
     <nav class="nav">
       <div class="brand">TravelTogether ✈️</div>
       <a href="{{ url_for('index') }}" class="{% if here=='index' %}active{% endif %}">Home</a>
       <a href="{{ url_for('proposals.list_proposals') }}" class="{% if 'proposals' in here %}active{% endif %}">Proposals</a>
       {% if current_user.is_authenticated %}
         <a href="{{ url_for('auth.profile_view', user_id=current_user.id) }}">My profile</a>
-        <a href="{{ url_for('auth.logout') }}" class="secondary">Logout</a>
+        <a href="{{ url_for('auth.logout') }}" class="secondary logout">Logout</a>
       {% else %}
-        <a href="{{ url_for('auth.login') }}" class="secondary">Login</a>
-        <a href="{{ url_for('auth.register') }}" class="secondary">Register</a>
+        <a href="{{ url_for('auth.login') }}" class="secondary login">Login</a>
+        <a href="{{ url_for('auth.register') }}" class="secondary register">Register</a>
       {% endif %}
     </nav>
 

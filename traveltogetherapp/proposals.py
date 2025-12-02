@@ -129,6 +129,7 @@ def proposal_detail(proposal_id: int):
         messages=messages,
         meetups=meetups,
         participation=participation,   # VIKTIG: brukes i templaten for å vise delete-knappen
+        ProposalStatus=ProposalStatus,  # Pass enum to template
     )
 
 @proposals_bp.route("/proposal/<int:proposal_id>/join")

@@ -1,10 +1,12 @@
 {% extends 'base.html' %}
 {% block title %}Welcome — Travel Together{% endblock %}
 {% block content %}
-<h2>Welcome to Travel Together</h2>
-<p class="muted">A minimal reference implementation for the UC3M Web Applications project.</p>
-<p>
-<a href="{{ url_for('auth.login') }}" role="button">Login</a>
-<a href="{{ url_for('auth.register') }}" role="button" class="secondary">Register</a>
+<h2>Welcome to Travel Together!</h2>
+<p class="muted">This is team 5's minimal reference implementation for the UC3M Web Applications project.</p>
+<br><br>
+<p class="muted">Sign in or register to get started.</p>
+<p class="home-cta">
+	<a href="{{ url_for('auth.login') }}" role="button" class="login">Login</a>
+	<a href="{{ url_for('auth.register') }}" role="button" class="secondary">Register</a>
 </p>
 {% endblock %}

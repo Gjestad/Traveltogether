@@ -35,7 +35,7 @@
             TBD
           {% endif %}
         </td>
-        <td>{{ p.max_participants or 'TBD' }}{{ "e:",p.participation }}</td>
+        <td>{{ p.max_participants or 'TBD' }}</td>
        {% if p.participation %}
         <td>
           <a class="btn secondary" href="{{ url_for('proposals.proposal_detail', proposal_id=p.id) }}">Open</a>

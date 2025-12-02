@@ -208,12 +208,4 @@
     }
   })();
 </script>
-
-<!-- Import ProposalStatus for Jinja2 -->
-{% set ProposalStatus = {
-  'finalized': proposal.status.name if proposal.status.name == 'finalized' else '',
-  'cancelled': proposal.status.name if proposal.status.name == 'cancelled' else '',
-  'open': proposal.status.name if proposal.status.name == 'open' else '',
-  'closed_to_new_participants': proposal.status.name if proposal.status.name == 'closed_to_new_participants' else ''
-} %}
 {% endblock %}

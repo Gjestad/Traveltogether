@@ -10,11 +10,17 @@
   </div>
   <div>
     <label>Destination</label>
-    <input type="text" name="destination">
+    <input id="destination" type="text" name="destination" autocomplete="off">
+    <div id="destination-list" class="autocomplete-list" aria-hidden="true"></div>
+    <input type="hidden" name="destination_lat" id="destination_lat">
+    <input type="hidden" name="destination_lon" id="destination_lon">
   </div>
   <div>
     <label>Departure</label>
-    <input type="text" name="departure">
+    <input id="departure" type="text" name="departure" autocomplete="off">
+    <div id="departure-list" class="autocomplete-list" aria-hidden="true"></div>
+    <input type="hidden" name="departure_lat" id="departure_lat">
+    <input type="hidden" name="departure_lon" id="departure_lon">
   </div>
   <div>
     <label>Budget</label>
@@ -29,4 +35,55 @@
     <a class="btn secondary" href="{{ url_for('proposals.list_proposals') }}">Cancel</a>
   </div>
 </form>
+<small class="muted">Address autocomplete powered by OpenStreetMap (suggestions only).</small>
+
+<script>
+// Lightweight autocomplete using Nominatim (OpenStreetMap)
+function debounce(fn, wait){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); }; }
+
+function attachAutocomplete(inputId, listId, latId, lonId){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  const latField = document.getElementById(latId);
+  const lonField = document.getElementById(lonId);
+
+  if(!input || !list) return;
+
+  const render = (items)=>{
+    list.innerHTML = '';
+    if(!items || items.length===0){ list.style.display='none'; return; }
+    items.forEach(it=>{
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.textContent = it.display_name;
+      div.addEventListener('click', ()=>{
+        input.value = it.display_name;
+        if(latField) latField.value = it.lat;
+        if(lonField) lonField.value = it.lon;
+        list.style.display='none';
+      });
+      list.appendChild(div);
+    });
+    list.style.display = 'block';
+  };
+
+  const doSearch = debounce(async ()=>{
+    const q = input.value.trim();
+    if(!q) { render([]); return; }
+    try{
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&limit=6`;
+      const res = await fetch(url, {headers: {'Accept': 'application/json'}});
+      if(!res.ok) { render([]); return; }
+      const data = await res.json();
+      render(data);
+    }catch(e){ console.error('autocomplete',e); render([]); }
+  }, 300);
+
+  input.addEventListener('input', ()=>{ latField && (latField.value=''); lonField && (lonField.value=''); doSearch(); });
+  document.addEventListener('click', (ev)=>{ if(!list.contains(ev.target) && ev.target !== input) list.style.display='none'; });
+}
+
+attachAutocomplete('destination','destination-list','destination_lat','destination_lon');
+attachAutocomplete('departure','departure-list','departure_lat','departure_lon');
+</script>
 {% endblock %}

@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, login_required, current_user
-from .models import db, User
+from .models import db, User, Participation, TripProposal, ProposalStatus
 from .forms import RegisterForm, LoginForm, ProfileForm
 import re
 
@@ -63,7 +63,15 @@ def logout():
 @login_required
 def profile_view(user_id):
     user = User.query.get_or_404(user_id)
-    return render_template("profile_view.html", user=user)
+    # Hent alle proposals denne brukeren deltar i
+    parts = Participation.query.filter_by(user_id=user.id).all()
+    proposals = [TripProposal.query.get(p.proposal_id) for p in parts]
+
+    # Split active vs inactive
+    active = [p for p in proposals if p and p.status in (ProposalStatus.open, ProposalStatus.closed_to_new_participants)]
+    inactive = [p for p in proposals if p and p.status in (ProposalStatus.finalized, ProposalStatus.cancelled)]
+
+    return render_template("profile_view.html", user=user, active_proposals=active, inactive_proposals=inactive)
 
 
 # (valgfritt, men matcher templaten din)

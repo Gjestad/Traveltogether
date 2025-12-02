@@ -87,8 +87,9 @@ def _parse_meetup_datetime(req) -> datetime | None:
 @proposals_bp.route("/proposals")
 @login_required
 def list_proposals():
+    # Only show open or closed_to_new_participants proposals for discovery
     proposals = TripProposal.query.filter(
-        TripProposal.status == ProposalStatus.open
+        TripProposal.status.in_([ProposalStatus.open, ProposalStatus.closed_to_new_participants])
     ).all()
 
     # Call get_participation for each proposal
@@ -134,11 +135,17 @@ def proposal_detail(proposal_id: int):
 @login_required
 def proposal_join(proposal_id: int):
     proposal = TripProposal.query.get_or_404(proposal_id)
-   #already participating 
-    if get_participation(proposal):
-       return
     
-   #check if trip is full 
+    # already participating 
+    if get_participation(proposal):
+       return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+    
+    # check if proposal is open to new participants
+    if proposal.status != ProposalStatus.open:
+        flash("This proposal is no longer accepting new participants.", "warning")
+        return redirect(url_for("proposals.list_proposals"))
+    
+    # check if trip is full 
     if proposal.max_participants and len(proposal.participations) >= proposal.max_participants:
         flash("This trip is full.", "warning")
         # auto-close proposal
@@ -156,9 +163,7 @@ def proposal_join(proposal_id: int):
 
     db.session.commit()
      
-    return render_template(
-        "proposal_detail.html",
-        proposal=proposal)
+    return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
 
 @proposals_bp.route("/proposal/<int:proposal_id>/leave")
 @login_required
@@ -247,6 +252,11 @@ def post_message(proposal_id: int):
         flash("You are not a participant of this trip.", "danger")
         return redirect(url_for("proposals.list_proposals"))
 
+    # Prevent posting messages on finalized or cancelled proposals
+    if proposal.status in (ProposalStatus.finalized, ProposalStatus.cancelled):
+        flash("This trip proposal is no longer accepting messages.", "warning")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
     msg = Message(content=body, user_id=current_user.id, proposal_id=proposal_id)
     db.session.add(msg)
     db.session.commit()
@@ -273,6 +283,11 @@ def add_meetup(proposal_id: int):
         flash("You are not a participant of this trip.", "danger")
         return redirect(url_for("proposals.list_proposals"))
 
+    # Prevent adding meetups on finalized or cancelled proposals
+    if proposal.status in (ProposalStatus.finalized, ProposalStatus.cancelled):
+        flash("This trip proposal is no longer accepting changes.", "warning")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
     meetup = Meetup(
         location=location or None,
         datetime=dt,
@@ -283,6 +298,72 @@ def add_meetup(proposal_id: int):
     db.session.commit()
 
     flash("Meetup added!", "success")
+    return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+
+@proposals_bp.route("/proposal/<int:proposal_id>/finalize", methods=["POST"])
+@login_required
+def finalize_proposal(proposal_id: int):
+    """Finalize a proposal - make it read-only and no longer discoverable."""
+    proposal = TripProposal.query.get_or_404(proposal_id)
+
+    participation = get_participation(proposal)
+    if not participation or not participation.can_edit:
+        flash("You do not have permission to finalize this proposal.", "danger")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+    if proposal.status in (ProposalStatus.finalized, ProposalStatus.cancelled):
+        flash("This proposal has already been finalized or cancelled.", "warning")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+    proposal.status = ProposalStatus.finalized
+    db.session.commit()
+
+    flash("Proposal finalized successfully. It is now read-only.", "success")
+    return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+
+@proposals_bp.route("/proposal/<int:proposal_id>/cancel", methods=["POST"])
+@login_required
+def cancel_proposal(proposal_id: int):
+    """Cancel a proposal - make it read-only and no longer discoverable."""
+    proposal = TripProposal.query.get_or_404(proposal_id)
+
+    participation = get_participation(proposal)
+    if not participation or not participation.can_edit:
+        flash("You do not have permission to cancel this proposal.", "danger")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+    if proposal.status in (ProposalStatus.finalized, ProposalStatus.cancelled):
+        flash("This proposal has already been finalized or cancelled.", "warning")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+    proposal.status = ProposalStatus.cancelled
+    db.session.commit()
+
+    flash("Proposal cancelled successfully. It is now read-only.", "success")
+    return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+
+@proposals_bp.route("/proposal/<int:proposal_id>/close-to-new-participants", methods=["POST"])
+@login_required
+def close_to_new_participants_proposal(proposal_id: int):
+    """Close a proposal to new participants - no new joins allowed but other functionality continues."""
+    proposal = TripProposal.query.get_or_404(proposal_id)
+
+    participation = get_participation(proposal)
+    if not participation or not participation.can_edit:
+        flash("You do not have permission to close this proposal to new participants.", "danger")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+    if proposal.status != ProposalStatus.open:
+        flash("This proposal is not open to new participants.", "warning")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+
+    proposal.status = ProposalStatus.closed_to_new_participants
+    db.session.commit()
+
+    flash("Proposal closed to new participants. Existing functionality remains available.", "success")
     return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
 
 

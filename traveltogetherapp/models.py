@@ -27,9 +27,10 @@ class TripProposal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
     destination = db.Column(db.String(100))
-    departure = db.Column(db.String(100))
     budget = db.Column(db.Float, nullable=True)
     max_participants = db.Column(db.Integer, nullable=True)
+    start_date = db.Column(db.Date, nullable=True)
+    end_date = db.Column(db.Date, nullable=True)
     status = db.Column(db.Enum(ProposalStatus), default=ProposalStatus.open)
 
     creator_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
@@ -50,6 +51,9 @@ class Participation(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     proposal_id = db.Column(db.Integer, db.ForeignKey("trip_proposal.id"))
     can_edit = db.Column(db.Boolean, default=False)
+    
+    # Relationship to User
+    user = db.relationship("User", backref="participations", lazy=True)
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)

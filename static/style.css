@@ -50,16 +50,22 @@ body{
   pointer-events:none;
 }
 
-/* Slight dark overlay to improve text contrast over video */
-.bg-video-overlay{
-  position:fixed; inset:0; z-index:0; background:rgba(3,6,12,0.12); pointer-events:none;
-}
-
 /* Ensure main content sits above the background video */
 .container{ position:relative; z-index:1 }
 
 a{color:#a3e635; text-decoration:none}
 a:hover{opacity:.9}
+
+/* Profile links hover effect - underline */
+a[href*="profile_view"]{
+  text-decoration:none;
+  border-bottom:1px solid transparent;
+  transition: border-bottom-color 200ms ease;
+}
+a[href*="profile_view"]:hover{
+  border-bottom-color:currentColor;
+  opacity:1;
+}
 
 .nav{
   position:sticky; top:0; z-index:10;
@@ -144,10 +150,6 @@ a:hover{opacity:.9}
   transform:translateY(-1px);
   color:var(--text);
   outline:none;
-}
-
-/* Make the spacing between the two secondary links double compared to nav gap */
-.nav > a.secondary + a.secondary {
 }
 
 .container{
@@ -243,12 +245,12 @@ input:focus, textarea:focus{border-color:rgba(34,197,94,.6); box-shadow:0 0 0 3p
   display:inline-flex; align-items:center; justify-content:center;
   padding:10px 14px; border-radius:12px; border:1px solid transparent;
   background:var(--brand); color:#052e16; font-weight:700; cursor:pointer;
+  font-size:14px; line-height:1.2;
 }
 .btn:hover{background:var(--brand-600)}
 .btn.secondary{background:transparent; color:var(--text); border-color:rgba(255,255,255,.18)}
 .btn.secondary:hover{background:rgba(255,255,255,.06)}
-.btn.danger{background:var(--danger); color:white}
-.btn.warning{background:var(--warning); color:#1f2937}
+.btn.alert{background:var(--danger); color:white}
 
 .flash{
   margin:10px 0; padding:10px 12px; border-radius:10px;
@@ -260,17 +262,3 @@ input:focus, textarea:focus{border-color:rgba(34,197,94,.6); box-shadow:0 0 0 3p
 
 .muted{color:var(--muted)}
 .spacer{height:10px}
-
-
-/* Fjern sekund-feltet fra <input type="time"> i nettlesere som viser det */
-input[type="time"]::-webkit-datetime-edit-second-field,
-input[type="time"]::-webkit-datetime-edit-millisecond-field,
-input[type="time"]::-webkit-datetime-edit-ampm-field {
-  display: none;
-}
-
-/* Firefox */
-input[type="time"]::-moz-focus-inner,
-input[type="time"]::-moz-datetime-edit-second-field {
-  display: none !important;
-}

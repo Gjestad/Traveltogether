@@ -4,10 +4,13 @@
 <h3>{{ user.alias if user.alias else user.email }}</h3>
 {% if user.alias %}
 <p class="muted">{{ user.email }}</p>
+<div class="spacer"></div>
 {% endif %}
 <p>{{ user.description or 'No description yet.' }}</p>
 <p><a href="{{ url_for('auth.profile_edit') }}">Edit profile</a></p>
 <div class="spacer"></div>
+
+<hr>
 
 <h4>Your proposals</h4>
 
@@ -17,7 +20,7 @@
 	{% for p in active_proposals %}
 		<li class="list-item">
 			<a href="{{ url_for('proposals.proposal_detail', proposal_id=p.id) }}">{{ p.title }}</a>
-			<small class="muted"> — {{ p.status.name }}</small>
+			<small class="muted"> — {{ p.status.name.replace('_', ' ').title() }}</small>
 		</li>
 	{% endfor %}
 	</ul>
@@ -25,13 +28,15 @@
 	<p class="muted">You have no active proposals.</p>
 {% endif %}
 
+<hr>
+
 <h5>Inactive</h5>
 {% if inactive_proposals and inactive_proposals|length > 0 %}
 	<ul class="list">
 	{% for p in inactive_proposals %}
 		<li class="list-item">
 			<a href="{{ url_for('proposals.proposal_detail', proposal_id=p.id) }}">{{ p.title }}</a>
-			<small class="muted"> — {{ p.status.name }}</small>
+			<small class="muted"> — {{ p.status.name.replace('_', ' ').title() }}</small>
 		</li>
 	{% endfor %}
 	</ul>

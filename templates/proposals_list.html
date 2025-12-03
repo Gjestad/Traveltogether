@@ -6,7 +6,7 @@
 <div class="spacer"></div>
 
 <div class="actions">
-  <a class="btn" href="{{ url_for('proposals.new_proposal') }}">+ New proposal</a>
+  <a class="btn" href="{{ url_for('proposals.new_proposal') }}">+ Add proposal</a>
 </div>
 
 <div class="spacer"></div>
@@ -16,9 +16,9 @@
     <tr>
       <th>Title</th>
       <th>Destination</th>
-      <th>Departure</th>
+      <th>Date</th>
       <th>Budget</th>
-      <th>Max participants</th>
+      <th>Participants</th>
       <th></th>
     </tr>
   </thead>
@@ -27,7 +27,15 @@
       <tr>
         <td>{{ p.title }}</td>
         <td>{{ p.destination or 'TBD' }}</td>
-        <td>{{ p.departure or 'TBD' }}</td>
+        <td>
+          {% if p.start_date and p.end_date %}
+            {{ p.start_date.strftime('%Y-%m-%d') }} - {{ p.end_date.strftime('%Y-%m-%d') }}
+          {% elif p.start_date %}
+            {{ p.start_date.strftime('%Y-%m-%d') }}
+          {% else %}
+            TBD
+          {% endif %}
+        </td>
         <td>
           {% if p.budget is not none %}
             {{ p.budget }}
@@ -35,7 +43,7 @@
             TBD
           {% endif %}
         </td>
-        <td>{{ p.max_participants or 'TBD' }}</td>
+        <td>{{ p.participations|length }}{% if p.max_participants %} / {{ p.max_participants }}{% endif %}</td>
        {% if p.participation %}
         <td>
           <a class="btn secondary" href="{{ url_for('proposals.proposal_detail', proposal_id=p.id) }}">Open</a>

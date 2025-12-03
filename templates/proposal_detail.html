@@ -26,7 +26,15 @@
   <!-- Info-panel -->
   <div class="panel">
     <p><strong>Destination:</strong> {{ proposal.destination or 'TBD' }}</p>
-    <p><strong>Departure:</strong> {{ proposal.departure or 'TBD' }}</p>
+    <p><strong>Date:</strong> 
+      {% if proposal.start_date and proposal.end_date %}
+        {{ proposal.start_date.strftime('%Y-%m-%d') }} to {{ proposal.end_date.strftime('%Y-%m-%d') }}
+      {% elif proposal.start_date %}
+        {{ proposal.start_date.strftime('%Y-%m-%d') }}
+      {% else %}
+        TBD
+      {% endif %}
+    </p>
     <p><strong>Budget:</strong>
       {% if proposal.budget is not none %}{{ proposal.budget }}{% else %}TBD{% endif %}
     </p>
@@ -41,7 +49,7 @@
           style="color: red; font-weight: bold;"
         {% endif %}
       >
-        {{ proposal.status.name if proposal.status else 'open' }}
+        {{ proposal.status.name.replace('_', ' ').title() if proposal.status else 'Open' }}
       </span>
     </p>
 
@@ -50,30 +58,56 @@
       {% if proposal.status == ProposalStatus.open %}
       <div class="actions" style="margin-top: 1em; display: flex; gap: 0.5em; flex-wrap: wrap;">
         <form method="post" action="{{ url_for('proposals.close_to_new_participants_proposal', proposal_id=proposal.id) }}" style="margin: 0;">
-          <button type="submit" class="btn" style="background-color: #ff9800; border: none;">Close to New</button>
+          <button type="submit" class="btn" style="background-color: #ff9800; border: none; padding: 10px 14px;">Close to New</button>
         </form>
         <form method="post" action="{{ url_for('proposals.finalize_proposal', proposal_id=proposal.id) }}" style="margin: 0;">
-          <button type="submit" class="btn" style="background-color: #4caf50; border: none;">Finalize</button>
+          <button type="submit" class="btn" style="background-color: #4caf50; border: none; padding: 10px 14px;">Finalize</button>
         </form>
         <form method="post" action="{{ url_for('proposals.cancel_proposal', proposal_id=proposal.id) }}" onsubmit="return confirm('Are you sure you want to cancel this proposal?');" style="margin: 0;">
-          <button type="submit" class="btn alert" style="border: none;">Cancel</button>
+          <button type="submit" class="btn alert" style="border: none; padding: 10px 14px;">Cancel</button>
         </form>
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
       </div>
       {% elif proposal.status == ProposalStatus.closed_to_new_participants %}
       <div class="actions" style="margin-top: 1em; display: flex; gap: 0.5em; flex-wrap: wrap;">
         <form method="post" action="{{ url_for('proposals.finalize_proposal', proposal_id=proposal.id) }}" style="margin: 0;">
-          <button type="submit" class="btn" style="background-color: #4caf50; border: none;">Finalize</button>
+          <button type="submit" class="btn" style="background-color: #4caf50; border: none; padding: 10px 14px;">Finalize</button>
         </form>
         <form method="post" action="{{ url_for('proposals.cancel_proposal', proposal_id=proposal.id) }}" onsubmit="return confirm('Are you sure you want to cancel this proposal?');" style="margin: 0;">
-          <button type="submit" class="btn alert" style="border: none;">Cancel</button>
+          <button type="submit" class="btn alert" style="border: none; padding: 10px 14px;">Cancel</button>
         </form>
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
+      </div>
+      {% else %}
+      <div class="actions" style="margin-top: 1em;">
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
       </div>
       {% endif %}
+    {% else %}
+      <div class="actions" style="margin-top: 1em;">
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
+      </div>
     {% endif %}
 
-    <div class="actions">
-      <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}">← Leave</a>
-    </div>
+    <div class="spacer"></div>
+    <h4>Participants</h4>
+    <ul class="list">
+      {% for part in proposal.participations %}
+        <li class="list-item">
+          <strong><a href="{{ url_for('auth.profile_view', user_id=part.user_id) }}">{{ part.user.alias if part.user.alias else part.user.email }}</a></strong>
+          {% if part.can_edit %}
+            <span class="muted">(editor)</span>
+          {% endif %}
+          {% if participation and participation.can_edit and not part.can_edit and part.user_id != current_user.id %}
+            <form method="post" action="{{ url_for('proposals.grant_edit_permission', proposal_id=proposal.id, user_id=part.user_id) }}" style="display:inline; margin-left:1em;">
+              <button type="submit" class="btn small">Grant edit rights</button>
+            </form>
+          {% endif %}
+        </li>
+      {% else %}
+        <li class="muted">No participants yet.</li>
+      {% endfor %}
+    </ul>
   </div>
 
   <!-- Meldinger + Meetups -->
@@ -96,7 +130,7 @@
     <ul class="list">
       {% for m in messages %}
         <li class="list-item">
-          <div><strong>{% if m.author %}{{ m.author.alias if m.author.alias else m.author.email }}{% else %}Unknown{% endif %}</strong>
+          <div><strong>{% if m.author %}<a href="{{ url_for('auth.profile_view', user_id=m.author.id) }}">{{ m.author.alias if m.author.alias else m.author.email }}</a>{% else %}Unknown{% endif %}</strong>
             <small class="muted"> · {{ m.timestamp.strftime('%Y-%m-%d %H:%M') if m.timestamp else '' }}</small>
           </div>
           <div>{{ m.content }}</div>

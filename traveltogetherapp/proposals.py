@@ -90,7 +90,7 @@ def list_proposals():
     # Only show open or closed_to_new_participants proposals for discovery
     proposals = TripProposal.query.filter(
         TripProposal.status.in_([ProposalStatus.open, ProposalStatus.closed_to_new_participants])
-    ).all()
+    ).order_by(TripProposal.start_date.is_(None), TripProposal.start_date.asc()).all()
 
     # Call get_participation for each proposal
     for p in proposals:
@@ -178,15 +178,26 @@ def proposal_leave(proposal_id: int):
         flash("You are not participating in this trip.", "info")
         return redirect(url_for("proposals.list_proposals"))
 
+    proposal = TripProposal.query.get(proposal_id)
+    
+    # If this is the last participant, delete the entire proposal
+    participant_count = len(proposal.participations)
+    if participant_count <= 1:
+        Message.query.filter_by(proposal_id=proposal.id).delete()
+        Meetup.query.filter_by(proposal_id=proposal.id).delete()
+        Participation.query.filter_by(proposal_id=proposal.id).delete()
+        db.session.delete(proposal)
+        db.session.commit()
+        flash("You were the last participant. The trip proposal has been deleted.", "success")
+        return redirect(url_for("proposals.list_proposals"))
+    
+    # Otherwise just remove this participant
     db.session.delete(participation)
 
     # If trip was closed due to max participants, reopen if space available
-    proposal = TripProposal.query.get(proposal_id)
     if proposal.status == ProposalStatus.closed_to_new_participants:
-        if proposal.max_participants and proposal.participations.count() < proposal.max_participants:
+        if proposal.max_participants and len(proposal.participations) - 1 < proposal.max_participants:
             proposal.status = ProposalStatus.open
-
-   #TODO: If a participant wanting to leave a trip proposal that has not been finalized or cancelled yet is the only one with editing permissions for it, the application will not allow them to leave. 
 
     db.session.commit()
     flash("You left the trip.", "success")
@@ -198,7 +209,6 @@ def new_proposal():
     if request.method == "POST":
         title = (request.form.get("title") or "").strip()
         destination = (request.form.get("destination") or "").strip()
-        departure = (request.form.get("departure") or "").strip()
 
         # Budsjett (float)
         budget_raw = (request.form.get("budget") or "").strip()
@@ -214,6 +224,25 @@ def new_proposal():
         except ValueError:
             max_participants = None
 
+        # Date range
+        start_date_raw = (request.form.get("start_date") or "").strip()
+        end_date_raw = (request.form.get("end_date") or "").strip()
+        
+        start_date = None
+        end_date = None
+        
+        if start_date_raw:
+            try:
+                start_date = datetime.strptime(start_date_raw, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+        
+        if end_date_raw:
+            try:
+                end_date = datetime.strptime(end_date_raw, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
         if not title:
             flash("Title is required.", "danger")
             return render_template("proposal_new.html")
@@ -221,9 +250,10 @@ def new_proposal():
         proposal = TripProposal(
             title=title,
             destination=destination or None,
-            departure=departure or None,
             budget=budget,
             max_participants=max_participants,
+            start_date=start_date,
+            end_date=end_date,
             creator_id=current_user.id,
         )
         db.session.add(proposal)
@@ -367,6 +397,26 @@ def close_to_new_participants_proposal(proposal_id: int):
     flash("Proposal closed to new participants. Existing functionality remains available.", "success")
     return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
 
+
+@proposals_bp.route("/proposal/<int:proposal_id>/grant-edit/<int:user_id>", methods=["POST"])
+@login_required
+def grant_edit_permission(proposal_id: int, user_id: int):
+    proposal = TripProposal.query.get_or_404(proposal_id)
+    participation = get_participation(proposal)
+    if not participation or not participation.can_edit:
+        flash("You do not have permission to grant edit rights.", "danger")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+    target = Participation.query.filter_by(proposal_id=proposal_id, user_id=user_id).first()
+    if not target:
+        flash("User is not a participant.", "danger")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+    if target.can_edit:
+        flash("User already has edit rights.", "info")
+        return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
+    target.can_edit = True
+    db.session.commit()
+    flash("Edit rights granted.", "success")
+    return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
 
 @proposals_bp.route("/proposal/<int:proposal_id>/delete", methods=["POST"])
 @login_required

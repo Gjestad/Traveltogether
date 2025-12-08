@@ -211,7 +211,7 @@ def new_proposal():
 
         if not title:
             flash("Title is required.", "danger")
-            return render_template("proposal_new.html")
+            return render_template("proposal_create_new.html")
 
         proposal = TripProposal(
             title=title,
@@ -240,7 +240,7 @@ def new_proposal():
         flash("Trip proposal created successfully.", "success")
         return redirect(url_for("proposals.list_proposals"))
 
-    return render_template("proposal_new.html")
+    return render_template("proposal_create_new.html")
 
 
 @proposals_bp.route("/proposal/<int:proposal_id>/message", methods=["POST"])

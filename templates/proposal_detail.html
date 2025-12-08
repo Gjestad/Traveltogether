@@ -154,10 +154,11 @@
 
     <div class="spacer"></div>
 
-    <h4>Meetups</h4>
+    <h4>Meetup Suggestions</h4>
 
     <!-- Show status message if proposal is finalized or cancelled -->
     {% if proposal.status not in (ProposalStatus.finalized, ProposalStatus.cancelled) %}
+      <h5 style="margin-top: 0; margin-bottom: 0.5em; font-weight: normal; font-size: 1em;">Suggest Meetup</h5>
       <form id="meetup-form" novalidate
             method="post"
             action="{{ url_for('proposals.add_meetup', proposal_id=proposal.id) }}"

@@ -10,6 +10,17 @@
 <label>About me
 <textarea name="description" rows="6" placeholder="Tell us about yourself (optional)">{{ form.description.data }}</textarea>
 </label>
+
+<div class="spacer"></div>
+<h4>Change Password (optional)</h4>
+<label>New Password
+<input type="password" name="new_password" placeholder="Leave blank to keep current password" />
+</label>
+
+<label>Confirm New Password
+<input type="password" name="confirm_password" placeholder="Confirm new password" />
+</label>
+
 <button type="submit">Save</button>
 </form>
 {% endblock %}

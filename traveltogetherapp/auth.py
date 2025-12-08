@@ -91,8 +91,29 @@ def profile_edit():
     if request.method == "POST" and form.validate():
         current_user.alias = form.alias.data.strip()
         current_user.description = form.description.data
+        
+        # Handle password change
+        new_password = request.form.get("new_password", "").strip()
+        confirm_password = request.form.get("confirm_password", "").strip()
+        
+        if new_password or confirm_password:
+            if not new_password:
+                flash("Please enter a new password.", "danger")
+                return render_template("profile_edit.html", form=form)
+            if new_password != confirm_password:
+                flash("Passwords do not match.", "danger")
+                return render_template("profile_edit.html", form=form)
+            if len(new_password) < 6:
+                flash("Password must be at least 6 characters long.", "danger")
+                return render_template("profile_edit.html", form=form)
+            
+            # Update password
+            current_user.password_hash = generate_password_hash(new_password)
+            flash("Profile and password updated.", "success")
+        else:
+            flash("Profile updated.", "success")
+        
         db.session.commit()
-        flash("Profile updated.", "success")
         return redirect(url_for("proposals.list_proposals"))
     
     # Prefill form on GET

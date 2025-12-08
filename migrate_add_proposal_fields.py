@@ -56,4 +56,4 @@ with app.app_context():
         print(f"activities_are_final: {e}")
 
     db.session.commit()
-    print("\n Migration completed successfully!")
+    print("\nMigration completed successfully!")

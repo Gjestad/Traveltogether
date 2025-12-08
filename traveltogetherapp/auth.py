@@ -22,7 +22,9 @@ def register():
             flash("Ugyldig e-postadresse.", "danger")
             return render_template("auth_register.html", form=form)
 
-        if User.query.filter_by(email=email).first():
+        query = db.select(User).where(User.email == email)
+        user = db.session.execute(query).scalar_one_or_none()
+        if user:
             flash("Email already registered.", "warning")
             return render_template("auth_register.html", form=form)
 
@@ -42,7 +44,8 @@ def login():
     form = LoginForm(request.form)
     if request.method == "POST" and form.validate():
         email = form.email.data.strip()
-        user = User.query.filter_by(email=email).first()
+        query = db.select(User).where(User.email == email)
+        user = db.session.execute(query).scalar_one_or_none()
         if not user or not check_password_hash(user.password, form.password.data):
             flash("Invalid email or password.", "danger")
             return render_template("auth_login.html", form=form)
@@ -63,10 +66,15 @@ def logout():
 @auth_bp.route("/profile/<int:user_id>")
 @login_required
 def profile_view(user_id):
-    user = User.query.get_or_404(user_id)
-    # Hent alle proposals denne brukeren deltar i
-    parts = Participation.query.filter_by(user_id=user.id).all()
-    proposals = [TripProposal.query.get(p.proposal_id) for p in parts]
+    user = db.session.get(User, user_id)
+    if not user:
+        flash("User not found.", "danger")
+        return redirect(url_for("proposals.list_proposals"))
+    
+    # Get all proposals this user participates in
+    query = db.select(Participation).where(Participation.user_id == user.id)
+    parts = db.session.execute(query).scalars().all()
+    proposals = [db.session.get(TripProposal, p.proposal_id) for p in parts]
 
     # Split active vs inactive
     active = [p for p in proposals if p and p.status in (ProposalStatus.open, ProposalStatus.closed_to_new_participants)]

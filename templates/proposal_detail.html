@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% block title %}Proposal details{% endblock %}
 {% block content %}
+<div class="actions" style="margin-bottom: 1em; display: flex; justify-content: space-between; align-items: center;">
+  <a class="btn secondary" href="{{ url_for('proposals.list_proposals') }}">← Back to Proposals</a>
+  <a class="btn secondary" href="{{ url_for('auth.profile_view', user_id=current_user.id) }}">My Profile</a>
+</div>
+
 <div class="flex items-center justify-between">
   <h3>{{ proposal.title }}</h3>
 
@@ -19,9 +24,6 @@
 </div>
 
 <div class="spacer"></div>
-<div class="actions">
-  <a class="btn secondary" href="{{ url_for('proposals.list_proposals') }}">← Back</a>
-</div>
 <div class="grid cols-2">
   <!-- Info-panel -->
   <div class="panel">
@@ -156,7 +158,6 @@
 
     <!-- Show status message if proposal is finalized or cancelled -->
     {% if proposal.status not in (ProposalStatus.finalized, ProposalStatus.cancelled) %}
-      <!-- Slå av native validering og bygg ISO selv -->
       <form id="meetup-form" novalidate
             method="post"
             action="{{ url_for('proposals.add_meetup', proposal_id=proposal.id) }}"
@@ -174,10 +175,9 @@
 
         <div>
           <label for="meetup-time">Time</label>
-          <!-- Ren tekst → ingen nettleser-quirks -->
           <input id="meetup-time"
                  type="text"
-                 name="time_text"
+                 name="time"
                  inputmode="numeric"
                  autocomplete="off"
                  placeholder="HH:MM"
@@ -185,7 +185,6 @@
           <small class="muted">Format: HH:MM (24-hour)</small>
         </div>
 
-        <!-- Dette fylles av JS: YYYY-MM-DDTHH:MM -->
         <input type="hidden" id="meetup-datetime" name="datetime" value="">
 
         <div class="col-span-2 actions">
@@ -216,7 +215,7 @@
     closed_to_new_participants: 'closed_to_new_participants'
   };
 
-  // Enkel input-mask: formater til HH:MM mens man skriver
+  // Meetup date/time handling
   (function () {
     const timeInput = document.getElementById('meetup-time');
     if (timeInput) {

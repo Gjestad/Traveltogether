@@ -20,9 +20,11 @@ def get_participation(proposal: TripProposal):
     """Return the participation object for the logged-in user (or None)."""
     if not current_user.is_authenticated:
         return None
-    return Participation.query.filter_by(
-        user_id=current_user.id, proposal_id=proposal.id
-    ).first()
+    query = db.select(Participation).where(
+        Participation.user_id == current_user.id,
+        Participation.proposal_id == proposal.id
+    )
+    return db.session.execute(query).scalar_one_or_none()
 
 
 def _parse_meetup_datetime(req) -> datetime | None:
@@ -42,9 +44,10 @@ def _parse_meetup_datetime(req) -> datetime | None:
 @login_required
 def list_proposals():
     # Only show open or closed_to_new_participants proposals for discovery
-    proposals = TripProposal.query.filter(
+    query = db.select(TripProposal).where(
         TripProposal.status.in_([ProposalStatus.open, ProposalStatus.closed_to_new_participants])
-    ).order_by(TripProposal.start_date.is_(None), TripProposal.start_date.asc()).all()
+    ).order_by(TripProposal.start_date.is_(None), TripProposal.start_date.asc())
+    proposals = db.session.execute(query).scalars().all()
 
     # Call get_participation for each proposal
     for p in proposals:
@@ -55,7 +58,10 @@ def list_proposals():
 @proposals_bp.route("/proposal/<int:proposal_id>")
 @login_required
 def proposal_detail(proposal_id: int):
-    proposal = TripProposal.query.get_or_404(proposal_id)
+    proposal = db.session.get(TripProposal, proposal_id)
+    if not proposal:
+        flash("Proposal not found.", "danger")
+        return redirect(url_for("proposals.list_proposals"))
 
     # Require user to be a participant to view details
     participation = get_participation(proposal)
@@ -64,18 +70,16 @@ def proposal_detail(proposal_id: int):
         return redirect(url_for("proposals.list_proposals"))
 
     # Messages - newest first
-    messages = (
-        Message.query.filter_by(proposal_id=proposal.id)
-        .order_by(Message.timestamp.desc())
-        .all()
-    )
+    query_messages = db.select(Message).where(
+        Message.proposal_id == proposal.id
+    ).order_by(Message.timestamp.desc())
+    messages = db.session.execute(query_messages).scalars().all()
 
     # Meetups - NULL (unknown datetime) last
-    meetups = (
-        Meetup.query.filter_by(proposal_id=proposal.id)
-        .order_by(Meetup.datetime.is_(None), Meetup.datetime.desc())
-        .all()
-    )
+    query_meetups = db.select(Meetup).where(
+        Meetup.proposal_id == proposal.id
+    ).order_by(Meetup.datetime.is_(None), Meetup.datetime.desc())
+    meetups = db.session.execute(query_meetups).scalars().all()
 
     return render_template(
         "proposal_detail.html",

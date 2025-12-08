@@ -25,7 +25,12 @@
 <div class="grid cols-2">
   <!-- Info-panel -->
   <div class="panel">
-    <p><strong>Destination:</strong> {{ proposal.destination or 'TBD' }}</p>
+    <p><strong>Departure location:</strong> {{ proposal.departure_location or 'TBD' }}
+      {% if proposal.departure_location_is_final %}<span style="color: green;"> ✓ Final</span>{% endif %}
+    </p>
+    <p><strong>Destination:</strong> {{ proposal.destination or 'TBD' }}
+      {% if proposal.destination_is_final %}<span style="color: green;"> ✓ Final</span>{% endif %}
+    </p>
     <p><strong>Date:</strong> 
       {% if proposal.start_date and proposal.end_date %}
         {{ proposal.start_date.strftime('%Y-%m-%d') }} to {{ proposal.end_date.strftime('%Y-%m-%d') }}
@@ -34,9 +39,14 @@
       {% else %}
         TBD
       {% endif %}
+      {% if proposal.dates_are_final %}<span style="color: green;"> ✓ Final</span>{% endif %}
     </p>
     <p><strong>Budget:</strong>
       {% if proposal.budget is not none %}{{ proposal.budget }}{% else %}TBD{% endif %}
+      {% if proposal.budget_is_final %}<span style="color: green;"> ✓ Final</span>{% endif %}
+    </p>
+    <p><strong>Activities:</strong> {{ proposal.activities or 'TBD' }}
+      {% if proposal.activities_are_final %}<span style="color: green;"> ✓ Final</span>{% endif %}
     </p>
     <p><strong>Max participants:</strong> {{ proposal.max_participants or 'TBD' }}</p>
     <p><strong>Status:</strong> 

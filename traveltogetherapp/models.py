@@ -19,18 +19,30 @@ class User(UserMixin, db.Model):
     # Optional display alias shown across the site (e.g., "Alex", "Traveller123")
     alias = db.Column(db.String(50), nullable=True)
 
-    # Relasjoner
+    # Relationships
     messages = db.relationship("Message", backref="author", lazy=True)
     created_proposals = db.relationship("TripProposal", backref="creator", lazy=True)
 
 class TripProposal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(100), nullable=False)
+    
+    # Trip information
+    departure_location = db.Column(db.String(100), nullable=True)
     destination = db.Column(db.String(100))
     budget = db.Column(db.Float, nullable=True)
     max_participants = db.Column(db.Integer, nullable=True)
     start_date = db.Column(db.Date, nullable=True)
     end_date = db.Column(db.Date, nullable=True)
+    activities = db.Column(db.Text, nullable=True)  # Comma-separated or JSON string
+    
+    # Boolean fields indicating if information is final
+    departure_location_is_final = db.Column(db.Boolean, default=False)
+    destination_is_final = db.Column(db.Boolean, default=False)
+    budget_is_final = db.Column(db.Boolean, default=False)
+    dates_are_final = db.Column(db.Boolean, default=False)
+    activities_are_final = db.Column(db.Boolean, default=False)
+    
     status = db.Column(db.Enum(ProposalStatus), default=ProposalStatus.open)
 
     creator_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
@@ -42,7 +54,7 @@ class TripProposal(db.Model):
         cascade="all, delete-orphan"
     )
 
-    # Relasjoner
+    # Relationships
     messages = db.relationship("Message", backref="proposal", lazy=True, cascade="all, delete-orphan")
     meetups = db.relationship("Meetup", backref="proposal", lazy=True, cascade="all, delete-orphan")
 

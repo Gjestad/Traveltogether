@@ -7,7 +7,7 @@ import re
 
 auth_bp = Blueprint("auth", __name__)
 
-# Enkel epost-sjekk (bypass av email_validator)
+# Simple email check (bypassing email_validator)
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -15,7 +15,7 @@ EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 def register():
     form = RegisterForm(request.form)
     if request.method == "POST" and form.validate():
-        email = (form.email.data or "").strip()
+        email = form.email.data.strip()
         password = form.password.data
 
         if not EMAIL_RE.match(email):
@@ -26,12 +26,11 @@ def register():
             flash("Email already registered.", "warning")
             return render_template("auth_register.html", form=form)
 
-        # Bruk Werkzeug sin default: pbkdf2:sha256
         hashed_password = generate_password_hash(password)
-        user = User(email=email, password=hashed_password, description="", alias=None)
+        user = User(email=email, password=hashed_password)
         db.session.add(user)
         db.session.commit()
-        # Log in user and redirect to profile edit to set user name
+        
         login_user(user)
         flash("Registration successful! Please set your user name and profile.", "success")
         return redirect(url_for("auth.profile_edit"))
@@ -42,7 +41,7 @@ def register():
 def login():
     form = LoginForm(request.form)
     if request.method == "POST" and form.validate():
-        email = (form.email.data or "").strip()
+        email = form.email.data.strip()
         user = User.query.filter_by(email=email).first()
         if not user or not check_password_hash(user.password, form.password.data):
             flash("Invalid email or password.", "danger")
@@ -76,21 +75,20 @@ def profile_view(user_id):
     return render_template("profile_view.html", user=user, active_proposals=active, inactive_proposals=inactive)
 
 
-# (valgfritt, men matcher templaten din)
+
 @auth_bp.route("/profile/edit", methods=["GET", "POST"])
 @login_required
 def profile_edit():
     form = ProfileForm(request.form if request.method == "POST" else None)
     if request.method == "POST" and form.validate():
-        current_user.alias = (form.alias.data or "").strip()
-        current_user.description = form.description.data or ""
+        current_user.alias = form.alias.data.strip()
+        current_user.description = form.description.data
         db.session.commit()
         flash("Profile updated.", "success")
         return redirect(url_for("proposals.list_proposals"))
-    # prefill når GET
+    
+    # Prefill form on GET
     if request.method == "GET":
-        if hasattr(form, "description"):
-            form.description.data = current_user.description or ""
-        if hasattr(form, "alias"):
-            form.alias.data = current_user.alias or ""
+        form.description.data = current_user.description
+        form.alias.data = current_user.alias
     return render_template("profile_edit.html", form=form)

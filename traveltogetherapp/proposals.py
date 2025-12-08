@@ -17,7 +17,7 @@ proposals_bp = Blueprint("proposals", __name__)
 
 
 def get_participation(proposal: TripProposal):
-    """Returner deltagelsesobjektet for innlogget bruker (eller None)."""
+    """Return the participation object for the logged-in user (or None)."""
     if not current_user.is_authenticated:
         return None
     return Participation.query.filter_by(
@@ -26,61 +26,15 @@ def get_participation(proposal: TripProposal):
 
 
 def _parse_meetup_datetime(req) -> datetime | None:
-    """
-    Godtar:
-      - 'date' (YYYY-MM-DD) + 'time' (HH:MM, H:MM, HH:MM:SS, H:MM:SS, samt '.' eller '-' som separator)
-      - fallback 'datetime' (YYYY-MM-DDTHH:MM[,SS]) fra <input type="datetime-local"> eller vårt skjulte felt
-    Returnerer naiv datetime (lokal tid) eller None.
-    """
-    date_str = (req.form.get("date") or "").strip()
-    time_str = (req.form.get("time") or "").strip() or (req.form.get("time_text") or "").strip()
-    dt_raw  = (req.form.get("datetime") or "").strip()
-
-    try:
-        current_app.logger.info(f"[meetup] form: date='{date_str}' time='{time_str}' datetime='{dt_raw}'")
-    except Exception:
-        pass
-
-    # --- Helper: normaliser tid til HH:MM ---
-    # Tillat 6:18, 06:18, 06:18:00, 6:18:00, 06.18, 06-18
-    def norm_time(s: str) -> str | None:
-        if not s:
-            return None
-        s = s.strip()
-        s = s.replace(".", ":").replace("-", ":")
-        m = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", s)
-        if not m:
-            return None
-        h = int(m.group(1))
-        mi = int(m.group(2))
-        if not (0 <= h <= 23 and 0 <= mi <= 59):
-            return None
-        return f"{h:02d}:{mi:02d}"
-
-    # 1) Foretrekk separate felter
-    hhmm = norm_time(time_str)
-    if date_str and hhmm:
+    """Parse meetup datetime from form data."""
+    date_str = req.form.get("date", "").strip()
+    time_str = req.form.get("time", "").strip()
+    
+    if date_str and time_str:
         try:
-            return datetime.strptime(f"{date_str} {hhmm}", "%Y-%m-%d %H:%M")
+            return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         except ValueError:
-            try:
-                return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M:%S")
-            except ValueError:
-                return None
-
-    # 2) Fallback: datetime-local / skjult datetime-felt
-    if dt_raw:
-        v = dt_raw.strip().replace(" ", "T")
-        try:
-            return datetime.fromisoformat(v)  # YYYY-MM-DDTHH:MM[:SS[.ffffff]]
-        except ValueError:
-            pass
-        for fmt in ("%Y-%m-%dT%H:%M", "%Y-%m-%dT%H:%M:%S"):
-            try:
-                return datetime.strptime(v, fmt)
-            except ValueError:
-                continue
-
+            return None
     return None
 
 
@@ -103,20 +57,20 @@ def list_proposals():
 def proposal_detail(proposal_id: int):
     proposal = TripProposal.query.get_or_404(proposal_id)
 
-    # Krev at bruker deltar for å se detaljer
+    # Require user to be a participant to view details
     participation = get_participation(proposal)
     if not participation:
         flash("You are not a participant of this trip.", "danger")
         return redirect(url_for("proposals.list_proposals"))
 
-    # Meldinger – nyeste først
+    # Messages - newest first
     messages = (
         Message.query.filter_by(proposal_id=proposal.id)
         .order_by(Message.timestamp.desc())
         .all()
     )
 
-    # Meetups – NULL (ukjent tidspunkt) til slutt
+    # Meetups - NULL (unknown datetime) last
     meetups = (
         Meetup.query.filter_by(proposal_id=proposal.id)
         .order_by(Meetup.datetime.is_(None), Meetup.datetime.desc())
@@ -128,7 +82,7 @@ def proposal_detail(proposal_id: int):
         proposal=proposal,
         messages=messages,
         meetups=meetups,
-        participation=participation,   # VIKTIG: brukes i templaten for å vise delete-knappen
+        participation=participation,   # IMPORTANT: used in template to show delete button
         ProposalStatus=ProposalStatus,  # Pass enum to template
     )
 
@@ -207,29 +161,34 @@ def proposal_leave(proposal_id: int):
 @login_required
 def new_proposal():
     if request.method == "POST":
-        title = (request.form.get("title") or "").strip()
-        destination = (request.form.get("destination") or "").strip()
+        title = request.form.get("title", "").strip()
+        departure_location = request.form.get("departure_location", "").strip()
+        destination = request.form.get("destination", "").strip()
+        activities = request.form.get("activities", "").strip()
 
-        # Budsjett (float)
-        budget_raw = (request.form.get("budget") or "").strip()
-        try:
-            budget = float(budget_raw) if budget_raw else None
-        except ValueError:
-            budget = None
+        # Budget (float)
+        budget = None
+        budget_raw = request.form.get("budget", "").strip()
+        if budget_raw:
+            try:
+                budget = float(budget_raw)
+            except ValueError:
+                pass
 
-        # Maks deltakere (int)
-        mp_raw = (request.form.get("max_participants") or "").strip()
-        try:
-            max_participants = int(mp_raw) if mp_raw else None
-        except ValueError:
-            max_participants = None
+        # Max participants (int)
+        max_participants = None
+        mp_raw = request.form.get("max_participants", "").strip()
+        if mp_raw:
+            try:
+                max_participants = int(mp_raw)
+            except ValueError:
+                pass
 
-        # Date range
-        start_date_raw = (request.form.get("start_date") or "").strip()
-        end_date_raw = (request.form.get("end_date") or "").strip()
-        
+        # Dates
         start_date = None
         end_date = None
+        start_date_raw = request.form.get("start_date", "").strip()
+        end_date_raw = request.form.get("end_date", "").strip()
         
         if start_date_raw:
             try:
@@ -243,23 +202,37 @@ def new_proposal():
             except ValueError:
                 pass
 
+        # Boolean fields for marking information as final
+        departure_location_is_final = request.form.get("departure_location_is_final") == "on"
+        destination_is_final = request.form.get("destination_is_final") == "on"
+        budget_is_final = request.form.get("budget_is_final") == "on"
+        dates_are_final = request.form.get("dates_are_final") == "on"
+        activities_are_final = request.form.get("activities_are_final") == "on"
+
         if not title:
             flash("Title is required.", "danger")
             return render_template("proposal_new.html")
 
         proposal = TripProposal(
             title=title,
-            destination=destination or None,
+            departure_location=departure_location,
+            destination=destination,
             budget=budget,
             max_participants=max_participants,
             start_date=start_date,
             end_date=end_date,
+            activities=activities,
+            departure_location_is_final=departure_location_is_final,
+            destination_is_final=destination_is_final,
+            budget_is_final=budget_is_final,
+            dates_are_final=dates_are_final,
+            activities_are_final=activities_are_final,
             creator_id=current_user.id,
         )
         db.session.add(proposal)
         db.session.commit()
 
-        # Legg automatisk til skaperen som deltaker med redigeringsrett
+        # Automatically add creator as participant with edit rights
         part = Participation(user_id=current_user.id, proposal_id=proposal.id, can_edit=True)
         db.session.add(part)
         db.session.commit()
@@ -421,7 +394,7 @@ def grant_edit_permission(proposal_id: int, user_id: int):
 @proposals_bp.route("/proposal/<int:proposal_id>/delete", methods=["POST"])
 @login_required
 def delete_proposal(proposal_id: int):
-    """Slett en proposal (kun for brukere med can_edit på denne)."""
+    """Delete a proposal (only for users with can_edit permission)."""
     proposal = TripProposal.query.get_or_404(proposal_id)
 
     participation = get_participation(proposal)
@@ -429,7 +402,7 @@ def delete_proposal(proposal_id: int):
         flash("You do not have permission to delete this proposal.", "danger")
         return redirect(url_for("proposals.proposal_detail", proposal_id=proposal_id))
 
-    # Rydd relaterte rader for å unngå FK-feil (siden det ikke finnes relationship-cascade for Participation)
+    # Clean up related rows to avoid FK errors (since there's no relationship-cascade for Participation)
     Message.query.filter_by(proposal_id=proposal.id).delete()
     Meetup.query.filter_by(proposal_id=proposal.id).delete()
     Participation.query.filter_by(proposal_id=proposal.id).delete()

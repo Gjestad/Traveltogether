@@ -15,6 +15,7 @@
   <thead>
     <tr>
       <th>Title</th>
+      <th>Departure</th>
       <th>Destination</th>
       <th>Date</th>
       <th>Budget</th>
@@ -26,6 +27,7 @@
     {% for p in proposals %}
       <tr>
         <td>{{ p.title }}</td>
+        <td>{{ p.departure_location or 'TBD' }}</td>
         <td>{{ p.destination or 'TBD' }}</td>
         <td>
           {% if p.start_date and p.end_date %}
@@ -56,7 +58,7 @@
       </tr>
     {% else %}
       <tr>
-        <td colspan="6" class="muted">No open proposals yet.</td>
+        <td colspan="7" class="muted">No open proposals yet.</td>
       </tr>
     {% endfor %}
   </tbody>

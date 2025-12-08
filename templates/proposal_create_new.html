@@ -9,13 +9,34 @@
     <input type="text" name="title" required>
   </div>
   <div>
+    <label>Departure location</label>
+    <input id="departure" type="text" name="departure_location" autocomplete="off">
+    <div id="departure-list" class="autocomplete-list" aria-hidden="true"></div>
+    <label style="margin-top: 0.5rem; display: block;">
+      <input type="checkbox" name="departure_location_is_final"> Mark as final
+    </label>
+  </div>
+  <div>
     <label>Destination</label>
     <input id="destination" type="text" name="destination" autocomplete="off">
     <div id="destination-list" class="autocomplete-list" aria-hidden="true"></div>
+    <label style="margin-top: 0.5rem; display: block;">
+      <input type="checkbox" name="destination_is_final"> Mark as final
+    </label>
+  </div>
+  <div>
+    <label>Activities (comma-separated)</label>
+    <textarea name="activities" rows="3" placeholder="e.g. hiking, museums, food tours"></textarea>
+    <label style="margin-top: 0.5rem; display: block;">
+      <input type="checkbox" name="activities_are_final"> Mark as final
+    </label>
   </div>
   <div>
     <label>Budget</label>
     <input type="number" name="budget" step="0.01">
+    <label style="margin-top: 0.5rem; display: block;">
+      <input type="checkbox" name="budget_is_final"> Mark as final
+    </label>
   </div>
   <div>
     <label>Max participants</label>
@@ -28,6 +49,9 @@
   <div>
     <label>End date</label>
     <input type="date" name="end_date">
+    <label style="margin-top: 0.5rem; display: block;">
+      <input type="checkbox" name="dates_are_final"> Mark dates as final
+    </label>
   </div>
   <div class="col-span-2 actions">
     <button class="btn" type="submit">Create</button>
@@ -78,6 +102,7 @@ function attachAutocomplete(inputId, listId){
   document.addEventListener('click', (ev)=>{ if(!list.contains(ev.target) && ev.target !== input) list.style.display='none'; });
 }
 
+attachAutocomplete('departure','departure-list');
 attachAutocomplete('destination','destination-list');
 </script>
 {% endblock %}

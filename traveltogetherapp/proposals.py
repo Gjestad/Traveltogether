@@ -196,7 +196,7 @@ def new_proposal():
         # Budget (float)
         budget = None
         budget_raw = request.form.get("budget", "").strip()
-        if budget_raw:
+        if budget_raw != "":
             try:
                 budget = float(budget_raw)
             except ValueError:
@@ -285,7 +285,7 @@ def edit_proposal(proposal_id: int):
         proposal.activities = request.form.get("activities", "").strip() or None
         
         budget_str = request.form.get("budget", "").strip()
-        proposal.budget = float(budget_str) if budget_str else None
+        proposal.budget = float(budget_str) if budget_str != "" else None
         
         max_participants_str = request.form.get("max_participants", "").strip()
         proposal.max_participants = int(max_participants_str) if max_participants_str else None

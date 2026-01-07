@@ -3,7 +3,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>{% block title %}Mini Guardian{% endblock %}</title>
+    <title>{% block title %}TravelTogether{% endblock %}</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link href="{{ url_for('static', filename='style.css') }}" rel="stylesheet" />
   </head>
@@ -17,11 +17,9 @@
       <div class="bg-video-fade"></div>
     </div>
     <nav class="nav">
-      <div class="brand">Group 4 - Mini Guardian</div>
+      <div class="brand">TravelTogether ✈️</div>
       <a href="{{ url_for('index') }}" class="{% if here=='index' %}active{% endif %}">Home</a>
-      {% if current_user.is_authenticated and current_user.is_editor() %}
-        <a href="{{ url_for('auth.timelogs') }}" class="{% if here=='auth.timelogs' %}active{% endif %}">Time logging</a>
-      {% endif %}
+      <a href="{{ url_for('proposals.list_proposals') }}" class="{% if 'proposals' in here %}active{% endif %}">Proposals</a>
       {% if current_user.is_authenticated %}
         <a href="{{ url_for('auth.profile_view', user_id=current_user.id) }}">{{ current_user.alias if current_user.alias else 'My profile' }}</a>
         <a href="{{ url_for('auth.logout') }}" class="secondary logout">Logout</a>

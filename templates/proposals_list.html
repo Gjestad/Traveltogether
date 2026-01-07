@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Open proposals{% endblock %}
+
+{% block content %}
+<h3>Open proposals</h3>
+<div class="spacer"></div>
+
+<div class="actions">
+  <a class="btn" href="{{ url_for('proposals.new_proposal') }}">+ Add proposal</a>
+</div>
+
+<div class="spacer"></div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>Departure</th>
+      <th>Destination</th>
+      <th>Date</th>
+      <th>Budget</th>
+      <th>Participants</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for p in proposals %}
+      <tr>
+        <td>{{ p.title }}</td>
+        <td>{{ p.departure_location or 'TBD' }}</td>
+        <td>{{ p.destination or 'TBD' }}</td>
+        <td>
+          {% if p.start_date and p.end_date %}
+            {{ p.start_date.strftime('%Y-%m-%d') }} - {{ p.end_date.strftime('%Y-%m-%d') }}
+          {% elif p.start_date %}
+            {{ p.start_date.strftime('%Y-%m-%d') }}
+          {% else %}
+            TBD
+          {% endif %}
+        </td>
+        <td>
+          {% if p.budget is not none %}
+            {{ p.budget }}
+          {% else %}
+            TBD
+          {% endif %}
+        </td>
+        <td>{{ p.participations|length }}{% if p.max_participants %} / {{ p.max_participants }}{% endif %}</td>
+       {% if p.participation %}
+        <td>
+          <a class="btn secondary" href="{{ url_for('proposals.proposal_detail', proposal_id=p.id) }}">Open</a>
+        </td>
+       {% else %} 
+       <td>
+        <a class="btn primary" href="{{ url_for('proposals.proposal_join', proposal_id=p.id) }}">Join</a>
+      </td>
+       {% endif %} 
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="7" class="muted">No open proposals yet.</td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}New proposal{% endblock %}
+{% block content %}
+<h3>Create a new proposal</h3> 
+<div class="spacer"></div>
+<form method="post" class="grid cols-2">
+  <div>
+    <label>Title</label>
+    <input type="text" name="title" required>
+  </div>
+  <div>
+    <label>Departure location</label>
+    <input id="departure" type="text" name="departure_location" autocomplete="off">
+    <div id="departure-list" class="autocomplete-list" aria-hidden="true"></div>
+  </div>
+  <div>
+    <label>Destination</label>
+    <input id="destination" type="text" name="destination" autocomplete="off">
+    <div id="destination-list" class="autocomplete-list" aria-hidden="true"></div>
+  </div>
+  <div>
+    <label>Activities (comma-separated)</label>
+    <textarea name="activities" rows="3" placeholder="e.g. hiking, museums, food tours"></textarea>
+  </div>
+  <div>
+    <label>Budget</label>
+    <input type="number" name="budget" step="0.01" min="0">
+  </div>
+  <div>
+    <label>Max participants</label>
+    <input type="number" name="max_participants" min="1" value="4" required>
+  </div>
+  <div>
+    <label>Start date</label>
+    <input type="date" name="start_date">
+  </div>
+  <div>
+    <label>End date</label>
+    <input type="date" name="end_date">
+  </div>
+  <div class="col-span-2 actions">
+    <button class="btn" type="submit">Create</button>
+    <a class="btn secondary" href="{{ url_for('proposals.list_proposals') }}">Cancel</a>
+  </div>
+</form>
+<small class="muted">Address autocomplete powered by OpenStreetMap (suggestions only).</small>
+
+<script>
+// Lightweight autocomplete using Nominatim (OpenStreetMap)
+function debounce(fn, wait){ let t; return (...args)=>{ clearTimeout(t); t = setTimeout(()=>fn(...args), wait); }; }
+
+function attachAutocomplete(inputId, listId){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+
+  if(!input || !list) return;
+
+  const render = (items)=>{
+    list.innerHTML = '';
+    if(!items || items.length===0){ list.style.display='none'; return; }
+    items.forEach(it=>{
+      const div = document.createElement('div');
+      div.className = 'autocomplete-item';
+      div.textContent = it.display_name;
+      div.addEventListener('click', ()=>{
+        input.value = it.display_name;
+        list.style.display='none';
+      });
+      list.appendChild(div);
+    });
+    list.style.display = 'block';
+  };
+
+  const doSearch = debounce(async ()=>{
+    const q = input.value.trim();
+    if(!q) { render([]); return; }
+    try{
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&limit=6`;
+      const res = await fetch(url, {headers: {'Accept': 'application/json'}});
+      if(!res.ok) { render([]); return; }
+      const data = await res.json();
+      render(data);
+    }catch(e){ console.error('autocomplete',e); render([]); }
+  }, 300);
+
+  input.addEventListener('input', doSearch);
+  document.addEventListener('click', (ev)=>{ if(!list.contains(ev.target) && ev.target !== input) list.style.display='none'; });
+}
+
+attachAutocomplete('departure','departure-list');
+attachAutocomplete('destination','destination-list');
+</script>
+{% endblock %}

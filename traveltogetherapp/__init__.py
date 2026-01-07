@@ -38,11 +38,13 @@ def create_app():
 
     # Register blueprint modules
     from .auth import auth_bp
+    from .proposals import proposals_bp
     app.register_blueprint(auth_bp)
+    app.register_blueprint(proposals_bp)
 
     # User gets sendt to index page/standard route
     @app.route("/")
     def index():
-        return render_template("main_page.html")
+        return render_template("index.html")
 
     return app

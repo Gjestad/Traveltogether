@@ -1,8 +1,15 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
+import enum
 from datetime import datetime
 
 db = SQLAlchemy()
+
+class ProposalStatus(enum.Enum):
+    open = 1
+    closed_to_new_participants = 2
+    finalized = 3
+    cancelled = 4
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -11,41 +18,65 @@ class User(UserMixin, db.Model):
     description = db.Column(db.Text)
     # Optional display alias shown across the site (e.g., "Alex", "Traveller123")
     alias = db.Column(db.String(50), nullable=True)
-    # Role: 'user', 'editor', 'authority', or 'admin'
-    role = db.Column(db.String(20), nullable=False, default='user')
-    # RFID card ID for time logging via scanner
-    rfid = db.Column(db.String(100), nullable=True)
 
-    def is_editor(self):
-        return (self.role or 'user') in ('editor', 'admin')
+    # Relationships
+    messages = db.relationship("Message", backref="author", lazy=True)
+    created_proposals = db.relationship("TripProposal", backref="creator", lazy=True)
 
-    def is_authority(self):
-        return (self.role or 'user') in ('authority', 'admin')
-
-
-class TimeEntry(db.Model):
-    """Simple time tracking entries for project work.
-
-    start_time: UTC datetime when timer was started
-    end_time: UTC datetime when timer was stopped (nullable while running)
-    duration_minutes: integer duration in minutes (computed on stop)
-    """
+class TripProposal(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    start_time = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    end_time = db.Column(db.DateTime, nullable=True)
-    duration_minutes = db.Column(db.Integer, nullable=True)  # erstatter sekunder
+    title = db.Column(db.String(100), nullable=False)
+    
+    # Trip information
+    departure_location = db.Column(db.String(255), nullable=True)
+    destination = db.Column(db.String(255))
+    budget = db.Column(db.Float, nullable=True)
+    max_participants = db.Column(db.Integer, nullable=True)
+    start_date = db.Column(db.Date, nullable=True)
+    end_date = db.Column(db.Date, nullable=True)
+    activities = db.Column(db.Text, nullable=True)  # Comma-separated or JSON string
+    
+    # Boolean fields indicating if information is final
+    departure_location_is_final = db.Column(db.Boolean, default=False)
+    destination_is_final = db.Column(db.Boolean, default=False)
+    budget_is_final = db.Column(db.Boolean, default=False)
+    dates_are_final = db.Column(db.Boolean, default=False)
+    activities_are_final = db.Column(db.Boolean, default=False)
+    
+    status = db.Column(db.Enum(ProposalStatus), default=ProposalStatus.open)
 
-    user = db.relationship("User", backref="time_entries", lazy=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
 
+    participations = db.relationship(
+        "Participation",
+        backref="proposal_parent",
+        lazy=True,
+        cascade="all, delete-orphan"
+    )
 
-# Ny modell for manuell dagsjustering (uten sekunder)
-class DailyAdjustment(db.Model):
+    # Relationships
+    messages = db.relationship("Message", backref="proposal", lazy=True, cascade="all, delete-orphan")
+    meetups = db.relationship("Meetup", backref="proposal", lazy=True, cascade="all, delete-orphan")
+
+class Participation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    total_minutes = db.Column(db.Integer, nullable=False)  # kun minutter
-    edited_by = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    proposal_id = db.Column(db.Integer, db.ForeignKey("trip_proposal.id"))
+    can_edit = db.Column(db.Boolean, default=False)
+    
+    # Relationship to User
+    user = db.relationship("User", backref="participations", lazy=True)
 
-    __table_args__ = (db.UniqueConstraint('user_id', 'date', name='_user_date_uc'),)
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
+    proposal_id = db.Column(db.Integer, db.ForeignKey("trip_proposal.id"))
+
+class Meetup(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    location = db.Column(db.String(100), nullable=True)
+    datetime = db.Column(db.DateTime, nullable=True)
+    proposal_id = db.Column(db.Integer, db.ForeignKey("trip_proposal.id"))
+    creator_id = db.Column(db.Integer, db.ForeignKey("user.id"))

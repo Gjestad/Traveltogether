@@ -1,7 +1,0 @@
-# One email per line. Users with these emails will get 'editor' role on registration.
-# Example:
-# alice@example.com
-# bob@example.org
-
-nordbooyvind@gmail.com
-t1@test.com

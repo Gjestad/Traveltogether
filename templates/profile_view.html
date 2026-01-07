@@ -11,89 +11,40 @@
 <div class="spacer"></div>
 {% endif %}
 <p>{{ user.description or 'No description yet.' }}</p>
-{% if current_user.is_authenticated and (current_user.id == user.id or current_user.role == 'admin') %}
-	<p><a href="{{ url_for('auth.profile_edit') }}">Edit profile</a></p>
-	<div class="spacer"></div>
+<p><a href="{{ url_for('auth.profile_edit') }}">Edit profile</a></p>
+<div class="spacer"></div>
 
-	<h4>RFID Card</h4>
-	<form method="post" action="{{ url_for('auth.set_rfid', user_id=user.id) }}" style="margin-bottom:1em;">
-		<input type="text" name="rfid" value="{{ user.rfid or '' }}" placeholder="Scan or enter RFID code" {% if not (current_user.role == 'admin' or current_user.id == user.id) %}readonly{% endif %} />
-		{% if current_user.role == 'admin' or current_user.id == user.id %}
-			<button type="submit">Save RFID</button>
-		{% endif %}
-	</form>
+<hr>
 
-	<h4>Time logging (today)</h4>
-	{% set ts = today_seconds if today_seconds is defined else 0 %}
-	{% set hh = (ts // 3600) % 100 %}
-	{% set mm = (ts % 3600) // 60 %}
-	{% set ss = ts % 60 %}
-	<p>Recorded today: <strong>{{ "%02d:%02d:%02d" % (hh, mm, ss) }}</strong></p>
+<h4>Your proposals</h4>
 
-	<form action="{{ url_for('auth.start_time') }}" method="post" style="display:inline">
-		{% if not timer_running %}
-			<button class="btn primary">Start timer</button>
-		{% else %}
-			<button class="btn" disabled>Timer running…</button>
-		{% endif %}
-	</form>
-
-	<form action="{{ url_for('auth.stop_time') }}" method="post" style="display:inline; margin-left:0.5em;">
-		{% if timer_running %}
-			<button class="btn danger">Stop timer</button>
-		{% else %}
-			<button class="btn" disabled>Stop</button>
-		{% endif %}
-	</form>
-
-	<h5 style="margin-top:1em;">Recent entries (UTC shown; converted to your local time below)</h5>
-	{% if entries and entries|length > 0 %}
-	  <ul class="list">
-	  {% for e in entries %}
-	    <li class="list-item">
-	      <div>
-	        <strong><span class="server-utc">{{ e.start_fmt }}</span></strong>
-	        &rarr;
-	        <strong><span class="server-utc">{{ e.end_fmt }}</span></strong>
-	      </div>
-		<div class="muted">Duration: {{ (e.seconds // 3600)|int }}h {{ ((e.seconds % 3600)//60)|int }}m {{ (e.seconds % 60)|int }}s</div>
-      
-	    </li>
-	  {% endfor %}
-	  </ul>
-	{% else %}
-	  <p class="muted">No recent time entries.</p>
-	{% endif %}
-
-	<script>
-	// Convert UTC ISO timestamps to user's local string
-	(function(){
-	  document.querySelectorAll('.ts').forEach(function(el){
-	    var iso = el.getAttribute('data-utc');
-	    if(!iso){ el.textContent = 'running'; return; }
-	    try{
-	      var d = new Date(iso);
-	      if(isNaN(d)) { el.textContent = iso; }
-	      else { el.textContent = d.toLocaleString(); }
-	    } catch(e){ el.textContent = iso; }
-	  });
-	})();
-	</script>
+<h5>Active</h5>
+{% if active_proposals and active_proposals|length > 0 %}
+	<ul class="list">
+	{% for p in active_proposals %}
+		<li class="list-item">
+			<a href="{{ url_for('proposals.proposal_detail', proposal_id=p.id) }}">{{ p.title }}</a>
+			<small class="muted"> — {{ p.status.name.replace('_', ' ').title() }}</small>
+		</li>
+	{% endfor %}
+	</ul>
 {% else %}
-	<p class="muted">Time logging is only available for authorized users.</p>
+	<p class="muted">You have no active proposals.</p>
 {% endif %}
 
-{% if current_user.is_authenticated and current_user.id != user.id and current_user.is_editor() %}
-	<hr>
-	<h4>Manage user permissions</h4>
-	<p>Change role for this user:</p>
-	<form action="{{ url_for('auth.set_role', user_id=user.id) }}" method="post">
-		<select name="role">
-			<option value="user" {% if user.role == 'user' %}selected{% endif %}>User</option>
-			<option value="editor" {% if user.role == 'editor' %}selected{% endif %}>Editor</option>
-			<option value="authority" {% if user.role == 'authority' %}selected{% endif %}>Authority</option>
-		</select>
-		<button class="btn">Update role</button>
-	</form>
+<hr>
+
+<h5>Inactive</h5>
+{% if inactive_proposals and inactive_proposals|length > 0 %}
+	<ul class="list">
+	{% for p in inactive_proposals %}
+		<li class="list-item">
+			<a href="{{ url_for('proposals.proposal_detail', proposal_id=p.id) }}">{{ p.title }}</a>
+			<small class="muted"> — {{ p.status.name.replace('_', ' ').title() }}</small>
+		</li>
+	{% endfor %}
+	</ul>
+{% else %}
+	<p class="muted">You have no inactive proposals.</p>
 {% endif %}
 {% endblock %}

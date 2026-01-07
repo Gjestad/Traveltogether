@@ -18,5 +18,5 @@ class LoginForm(Form):
 
 
 class ProfileForm(Form):
-    alias = StringField("User name", [validators.DataRequired(), validators.Length(min=2, max=50, message="User name must be between 2 and 50 characters.")])
+    alias = StringField("User name", [validators.DataRequired(), validators.Length(min=1, max=50, message="User name must be between 1 and 50 characters.")])
     description = TextAreaField("About me", [validators.Optional(), validators.Length(max=500)])

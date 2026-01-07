@@ -1,0 +1,262 @@
+{% extends 'base.html' %}
+{% block title %}Proposal details{% endblock %}
+{% block content %}
+<div class="actions" style="margin-bottom: 1em; display: flex; justify-content: space-between; align-items: center;">
+  <a class="btn secondary" href="{{ url_for('proposals.list_proposals') }}">← Back to Proposals</a>
+  <a class="btn secondary" href="{{ url_for('auth.profile_view', user_id=current_user.id) }}">My Profile</a>
+</div>
+
+<div class="flex items-center justify-between">
+  <h3>{{ proposal.title }}</h3>
+
+  {% if participation and participation.can_edit %}
+  <form method="post"
+        action="{{ url_for('proposals.delete_proposal', proposal_id=proposal.id) }}"
+        onsubmit="return confirm('Are you sure you want to delete this proposal?');"
+        style="margin:0;">
+    <button type="submit"
+            title="Delete proposal"
+            style="background:none;border:none;cursor:pointer;color:#f55;font-size:1.2em;line-height:1;">
+      &#10005;
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="spacer"></div>
+<div class="grid cols-2">
+  <!-- Info-panel -->
+  <div class="panel">
+    <p><strong>Departure location:</strong> {{ proposal.departure_location or 'TBD' }}
+      {% if proposal.departure_location_is_final %}<span style="color: green;"> Final</span>{% endif %}
+    </p>
+    <p><strong>Destination:</strong> {{ proposal.destination or 'TBD' }}
+      {% if proposal.destination_is_final %}<span style="color: green;"> Final</span>{% endif %}
+    </p>
+    <p><strong>Date:</strong> 
+      {% if proposal.start_date and proposal.end_date %}
+        {{ proposal.start_date.strftime('%Y-%m-%d') }} to {{ proposal.end_date.strftime('%Y-%m-%d') }}
+      {% elif proposal.start_date %}
+        {{ proposal.start_date.strftime('%Y-%m-%d') }}
+      {% else %}
+        TBD
+      {% endif %}
+      {% if proposal.dates_are_final %}<span style="color: green;"> Final</span>{% endif %}
+    </p>
+    <p><strong>Budget:</strong>
+      {% if proposal.budget is not none %}{{ proposal.budget }}{% else %}TBD{% endif %}
+      {% if proposal.budget_is_final %}<span style="color: green;"> Final</span>{% endif %}
+    </p>
+    <p><strong>Activities:</strong> {{ proposal.activities or 'TBD' }}
+      {% if proposal.activities_are_final %}<span style="color: green;"> Final</span>{% endif %}
+    </p>
+    <p><strong>Max participants:</strong> {{ proposal.max_participants or 'TBD' }}</p>
+    <p><strong>Status:</strong> 
+      <span 
+        {% if proposal.status.name == 'open' %}
+          style="color: green; font-weight: bold;"
+        {% elif proposal.status.name == 'closed_to_new_participants' %}
+          style="color: orange; font-weight: bold;"
+        {% elif proposal.status.name in ('finalized', 'cancelled') %}
+          style="color: red; font-weight: bold;"
+        {% endif %}
+      >
+        {{ proposal.status.name.replace('_', ' ').title() if proposal.status else 'Open' }}
+      </span>
+    </p>
+
+    <!-- Action buttons for users with editing permissions -->
+    {% if participation and participation.can_edit %}
+      {% if proposal.status == ProposalStatus.open %}
+      <div class="actions" style="margin-top: 1em; display: flex; gap: 0.5em; flex-wrap: wrap;">
+        <a class="btn" href="{{ url_for('proposals.edit_proposal', proposal_id=proposal.id) }}" style="background-color: #2196f3; border: none; padding: 10px 14px;">Edit</a>
+        <form method="post" action="{{ url_for('proposals.close_to_new_participants_proposal', proposal_id=proposal.id) }}" style="margin: 0;">
+          <button type="submit" class="btn" style="background-color: #ff9800; border: none; padding: 10px 14px;">Close to New</button>
+        </form>
+        <form method="post" action="{{ url_for('proposals.finalize_proposal', proposal_id=proposal.id) }}" style="margin: 0;">
+          <button type="submit" class="btn" style="background-color: #4caf50; border: none; padding: 10px 14px;">Finalize</button>
+        </form>
+        <form method="post" action="{{ url_for('proposals.cancel_proposal', proposal_id=proposal.id) }}" onsubmit="return confirm('Are you sure you want to cancel this proposal?');" style="margin: 0;">
+          <button type="submit" class="btn alert" style="border: none; padding: 10px 14px;">Cancel</button>
+        </form>
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
+      </div>
+      {% elif proposal.status == ProposalStatus.closed_to_new_participants %}
+      <div class="actions" style="margin-top: 1em; display: flex; gap: 0.5em; flex-wrap: wrap;">
+        <a class="btn" href="{{ url_for('proposals.edit_proposal', proposal_id=proposal.id) }}" style="background-color: #2196f3; border: none; padding: 10px 14px;">Edit</a>
+        <form method="post" action="{{ url_for('proposals.reopen_proposal', proposal_id=proposal.id) }}" style="margin: 0;">
+          <button type="submit" class="btn" style="background-color: #03a9f4; border: none; padding: 10px 14px;">Reopen to New</button>
+        </form>
+        <form method="post" action="{{ url_for('proposals.finalize_proposal', proposal_id=proposal.id) }}" style="margin: 0;">
+          <button type="submit" class="btn" style="background-color: #4caf50; border: none; padding: 10px 14px;">Finalize</button>
+        </form>
+        <form method="post" action="{{ url_for('proposals.cancel_proposal', proposal_id=proposal.id) }}" onsubmit="return confirm('Are you sure you want to cancel this proposal?');" style="margin: 0;">
+          <button type="submit" class="btn alert" style="border: none; padding: 10px 14px;">Cancel</button>
+        </form>
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
+      </div>
+      {% else %}
+      <div class="actions" style="margin-top: 1em;">
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
+      </div>
+      {% endif %}
+    {% else %}
+      <div class="actions" style="margin-top: 1em;">
+        <a class="btn alert" href="{{ url_for('proposals.proposal_leave', proposal_id=proposal.id) }}" style="padding: 10px 14px;">Leave</a>
+      </div>
+    {% endif %}
+
+    <div class="spacer"></div>
+    <h4>Participants</h4>
+    <ul class="list">
+      {% for part in proposal.participations %}
+        <li class="list-item">
+          <strong><a href="{{ url_for('auth.profile_view', user_id=part.user_id) }}">{{ part.user.alias if part.user.alias else part.user.email }}</a></strong>
+          {% if part.can_edit %}
+            <span class="muted">(editor)</span>
+          {% else %}
+            <span class="muted">(participant)</span>
+          {% endif %}
+          {% if participation and participation.can_edit and not part.can_edit and part.user_id != current_user.id %}
+            <form method="post" action="{{ url_for('proposals.grant_edit_permission', proposal_id=proposal.id, user_id=part.user_id) }}" style="display:inline; margin-left:1em;">
+              <button type="submit" class="btn small" style="padding: 4px 8px; font-size: 0.85em;">Grant edit rights</button>
+            </form>
+          {% endif %}
+        </li>
+      {% else %}
+        <li class="muted">No participants yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Meldinger + Meetups -->
+  <div class="panel">
+    <h4>Message board</h4>
+    
+    <!-- Show status message if proposal is finalized or cancelled -->
+    {% if proposal.status in (ProposalStatus.finalized, ProposalStatus.cancelled) %}
+      <div style="background-color: #fff3cd; border: 1px solid #ffc107; padding: 0.5em; border-radius: 4px; margin-bottom: 1em; color: #856404;">
+        <strong>This proposal is {{ proposal.status.name }}.</strong> No new messages can be posted.
+      </div>
+    {% else %}
+      <form method="post" action="{{ url_for('proposals.post_message', proposal_id=proposal.id) }}" class="stack">
+        <label for="msg-body" class="sr-only">Message</label>
+        <textarea id="msg-body" name="body" rows="3" placeholder="Write a message..." required></textarea>
+        <button type="submit" class="btn">Post</button>
+      </form>
+    {% endif %}
+
+    <ul class="list">
+      {% for m in messages %}
+        <li class="list-item">
+          <div><strong>{% if m.author %}<a href="{{ url_for('auth.profile_view', user_id=m.author.id) }}">{{ m.author.alias if m.author.alias else m.author.email }}</a>{% else %}Unknown{% endif %}</strong>
+            <small class="muted"> · {{ m.timestamp.strftime('%Y-%m-%d %H:%M') if m.timestamp else '' }}</small>
+          </div>
+          <div>{{ m.content }}</div>
+        </li>
+      {% else %}
+        <li class="muted">No messages yet.</li>
+      {% endfor %}
+    </ul>
+
+    <div class="spacer"></div>
+
+    <!-- Show status message if proposal is finalized or cancelled -->
+    {% if proposal.status not in (ProposalStatus.finalized, ProposalStatus.cancelled) %}
+      <h4>Suggest Meetup</h4>
+      <form id="meetup-form" novalidate
+            method="post"
+            action="{{ url_for('proposals.add_meetup', proposal_id=proposal.id) }}"
+            class="grid cols-2 gap">
+
+        <div>
+          <label for="meetup-location">Location</label>
+          <input id="meetup-location" name="location" placeholder="e.g. Oslo Central Station">
+        </div>
+
+        <div>
+          <label for="meetup-date">Date</label>
+          <input id="meetup-date" type="date" name="date" placeholder="YYYY-MM-DD" required>
+        </div>
+
+        <div>
+          <label for="meetup-time">Time</label>
+          <input id="meetup-time"
+                 type="text"
+                 name="time"
+                 inputmode="numeric"
+                 autocomplete="off"
+                 placeholder="HH:MM"
+                 maxlength="5">
+          <small class="muted">Format: HH:MM (24-hour)</small>
+        </div>
+
+        <input type="hidden" id="meetup-datetime" name="datetime" value="">
+
+        <div class="col-span-2 actions">
+          <button type="submit" class="btn" formnovalidate>Add meetup</button>
+        </div>
+      </form>
+      <div class="spacer"></div>
+    {% endif %}
+
+    <h4>Meetup Suggestions</h4>
+    <ul class="list">
+      {% for m in meetups %}
+        <li class="list-item">
+          <strong>{{ m.location or 'TBD' }}</strong>
+          <small class="muted"> — {{ m.datetime.strftime('%Y-%m-%d %H:%M') if m.datetime else 'TBD' }}</small>
+        </li>
+      {% else %}
+        <li class="muted">No meetups scheduled yet.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+<script>
+  // Import ProposalStatus enum values for template use
+  const ProposalStatus = {
+    finalized: 'finalized',
+    cancelled: 'cancelled',
+    open: 'open',
+    closed_to_new_participants: 'closed_to_new_participants'
+  };
+
+  // Meetup date/time handling
+  (function () {
+    const timeInput = document.getElementById('meetup-time');
+    if (timeInput) {
+      timeInput.addEventListener('input', function () {
+        let v = this.value.replace(/[^\d]/g, '').slice(0,4); // bare tall, maks 4
+        if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2);
+        this.value = v;
+      });
+    }
+
+    const form = document.getElementById('meetup-form');
+    const dateInput = document.getElementById('meetup-date');
+    const dtHidden  = document.getElementById('meetup-datetime');
+
+    if (form) {
+      form.addEventListener('submit', function (e) {
+        const d = (dateInput.value || '').trim();
+        const t = (timeInput.value || '').trim();
+
+        const m = t.match(/^(\d{1,2}):(\d{2})$/);
+        if (!d) { alert('Please choose a date.'); e.preventDefault(); return; }
+        if (!m) { alert('Please enter time as HH:MM.'); e.preventDefault(); return; }
+
+        const h = parseInt(m[1],10), mm = parseInt(m[2],10);
+        if (h < 0 || h > 23 || mm < 0 || mm > 59) {
+          alert('Time out of range (00:00–23:59).'); e.preventDefault(); return;
+        }
+
+        const hh = String(h).padStart(2,'0');
+        const m2 = String(mm).padStart(2,'0');
+        dtHidden.value = d + 'T' + hh + ':' + m2; // ISO uten sekunder
+      });
+    }
+  })();
+</script>
+{% endblock %}
